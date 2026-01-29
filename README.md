@@ -1,4 +1,4 @@
-# 🎙️ genAI Audio Transcription System
+# 🎙️ GenAI Audio Transcription System
 
 A microservice-based audio transcription system built using:
 
@@ -42,7 +42,6 @@ genAI/
 ├── Dockerfile              # Python service container definition
 ├── audio/                  # Place audio files here
 ├── audio-service/          # Spring Boot project
-├── docker-compose.yml      # (Optional) Run both services together
 └── README.md
 ```
 
@@ -50,7 +49,7 @@ genAI/
 
 # ⚙️ Prerequisites
 
-- Java 17+
+- Java 21
 - Maven
 - Docker Desktop (running)
 
@@ -67,7 +66,7 @@ genAI/
 Add your audio file inside:
 
 ```
-genAI/audio/sample.wav
+genAI/audio/
 ```
 
 ---
@@ -77,7 +76,7 @@ genAI/audio/sample.wav
 From project root:
 
 ```bash
-docker build -t whisper-svc .
+docker build -t whisper-api .
 ```
 
 ---
@@ -87,7 +86,7 @@ docker build -t whisper-svc .
 PowerShell (Windows):
 
 ```powershell
-docker run --rm -p 8000:8000 -v "${PWD}\audio:/audio" whisper-svc
+docker run --rm -p 8000:8000 -v "${PWD}\audio:/audio" whisper-api
 ```
 
 Whisper will run at:
@@ -109,7 +108,7 @@ mvn spring-boot:run
 Spring Boot runs at:
 
 ```
-http://localhost:8080
+http://localhost:9090
 ```
 
 ---
@@ -135,7 +134,7 @@ Request Body:
 Send to:
 
 ```
-POST http://localhost:8080/audio/process
+POST http://localhost:9090/audio/process
 ```
 
 Response:
@@ -191,7 +190,7 @@ docker compose up --build
 
 Access:
 
-- Spring Boot → http://localhost:8080
+- Spring Boot → http://localhost:9090
 - Whisper → http://localhost:8000
 
 ---
@@ -247,23 +246,6 @@ Ensure:
 - File exists in `audio/`
 - Volume is mounted correctly
 
----
-
-### Docker Networking Error
-Use:
-
-```
-http://whisper:8000
-```
-
-NOT:
-
-```
-http://0.0.0.0:8000
-```
-
----
-
 ### FP16 Warning
 
 ```
@@ -274,18 +256,4 @@ This is normal. It means the model is running on CPU instead of GPU.
 
 ---
 
-# 🔥 Future Improvements
 
-- Send audio via multipart upload instead of file path
-- Implement structured DTOs instead of raw Map
-- Add logging & exception handling
-- Add authentication layer
-- Add GPU acceleration
-- Add async processing & queue support
-
----
-
-# 👨‍💻 Author
-
-Kshitiz Gupta  
-Software Developer | Backend & Systems Engineering
