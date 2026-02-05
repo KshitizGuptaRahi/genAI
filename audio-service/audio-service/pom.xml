@@ -40,6 +40,20 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+	<dependency>
+		<groupId>com.alphacephei</groupId>
+		<artifactId>vosk</artifactId>
+		<version>0.3.45</version>
+	</dependency>
+
+	<!-- JNA (required by Vosk) -->
+	<dependency>
+		<groupId>net.java.dev.jna</groupId>
+		<artifactId>jna</artifactId>
+		<version>5.7.0</version>
+	</dependency>
+
 	</dependencies>
 
 

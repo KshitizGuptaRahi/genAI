@@ -1,31 +1,69 @@
-import whisper
+# app.py
+import os
 import time
-from fastapi import FastAPI
+from typing import Optional, Dict
+
+import whisper
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 app = FastAPI()
-model = whisper.load_model("base")
+
+# Prefer "small" over "base" for better language robustness (still lightweight).
+model = whisper.load_model("small")
+
 
 class AudioReq(BaseModel):
     path: str
-    translate: bool = True
+    # same-language output always (kept for compatibility with your Java payload)
+    translate: bool = False
+    # Optional override: "hi" or "en". If not provided, we auto-pick between hi/en only.
+    language: Optional[str] = None
+
+
+def detect_probs(path: str) -> Dict[str, float]:
+    audio = whisper.load_audio(path)
+    audio = whisper.pad_or_trim(audio)
+    mel = whisper.log_mel_spectrogram(audio).to(model.device)
+    _, probs = model.detect_language(mel)
+    return probs
+
+
+def pick_hi_en_only(probs: Dict[str, float]) -> str:
+    hi_p = float(probs.get("hi", 0.0))
+    en_p = float(probs.get("en", 0.0))
+    return "hi" if hi_p >= en_p else "en"
+
 
 @app.post("/transcribe")
 def transcribe(req: AudioReq):
-    print(f"Processing audio file: {req.path}")
+    if not os.path.exists(req.path):
+        raise HTTPException(status_code=400, detail=f"Audio file not found: {req.path}")
 
-    start_time = time.time()
+    start = time.time()
+
+    probs = detect_probs(req.path)
+    lang = (req.language or "").strip().lower() or pick_hi_en_only(probs)
+
+    # Hinting helps keep Hindi in Devanagari when lang="hi"
+    prompt = "Hindi should be written in Devanagari script." if lang == "hi" else None
 
     result = model.transcribe(
         req.path,
-        task="translate" if req.translate else "transcribe"
+        task="transcribe",              # same-language output
+        language=lang,                  # force ONLY hi/en decision
+        temperature=0.0,
+        beam_size=5,
+        best_of=5,
+        condition_on_previous_text=False,
+        initial_prompt=prompt,
     )
 
-    end_time = time.time()
-    elapsed = end_time - start_time
+    elapsed = time.time() - start
 
-    print(f"Transcription took {elapsed:.2f} seconds")
-
-    result["processing_time_seconds"] = elapsed
-
-    return {"text": result["text"], "processing_time": result["processing_time_seconds"]}
+    return {
+        "text": (result.get("text") or "").strip(),
+        "language": lang,  # "hi" or "en"
+        "language_probs_top": sorted(probs.items(), key=lambda x: x[1], reverse=True)[:5],
+        "processing_time_seconds": round(elapsed, 3),
+    }
